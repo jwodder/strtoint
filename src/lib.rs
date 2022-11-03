@@ -87,13 +87,20 @@ macro_rules! implement {
                         }
                         continue;
                     }
-                    let digit = c.to_digit(radix).ok_or_else(|| ParseIntError::InvalidCharacter {c, position: i + offset})?;
-                    value = value.checked_mul(radix as $t).ok_or(ParseIntError::OutOfRange)?;
-                    if is_positive {
-                        value = value.checked_add(digit as $t).ok_or(ParseIntError::OutOfRange)?
+                    let digit = c
+                        .to_digit(radix)
+                        .ok_or_else(|| ParseIntError::InvalidCharacter {
+                            c,
+                            position: i + offset,
+                        })?;
+                    value = value
+                        .checked_mul(radix as $t)
+                        .ok_or(ParseIntError::OutOfRange)?;
+                    value = if is_positive {
+                        value.checked_add(digit as $t)
                     } else {
-                        value = value.checked_sub(digit as $t).ok_or(ParseIntError::OutOfRange)?
-                    }
+                        value.checked_sub(digit as $t)
+                    }.ok_or(ParseIntError::OutOfRange)?;
                     digit_seen = true;
                 }
                 if !digit_seen {
