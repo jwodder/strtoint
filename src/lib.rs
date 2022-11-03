@@ -134,6 +134,8 @@ mod tests {
     #[case("-0O10", -8)]
     #[case("-0b10", -2)]
     #[case("-0B10", -2)]
+    #[case("123_456", 123_456)]
+    #[case("-2147483648", -2147483648)]
     fn test_parse_int_i32(#[case] s: &str, #[case] x: i32) {
         assert_eq!(parse_int::<i32>(s).unwrap(), x);
     }
