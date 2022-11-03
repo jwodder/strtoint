@@ -82,6 +82,9 @@ macro_rules! implement {
                 let mut digit_seen = false;
                 for (i, c) in s.char_indices() {
                     if c == '_' {
+                        if !digit_seen && radix == 10 {
+                            return Err(ParseIntError::InvalidCharacter{c, position: i + offset});
+                        }
                         continue;
                     }
                     let digit = c.to_digit(radix).ok_or_else(|| ParseIntError::InvalidCharacter {c, position: i + offset})?;
