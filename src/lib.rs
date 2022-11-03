@@ -102,3 +102,66 @@ fn scan_int_str<N: Num>(s: &str) -> Result<(N, bool), <N as Num>::FromStrRadixEr
     let x = <N as Num>::from_str_radix(s, radix)?;
     Ok((x, is_pos))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("0", 0)]
+    #[case("1", 1)]
+    #[case("+1", 1)]
+    #[case("-1", -1)]
+    #[case("10", 10)]
+    #[case("0x10", 16)]
+    #[case("0X10", 16)]
+    #[case("0o10", 8)]
+    #[case("0O10", 8)]
+    #[case("0b10", 2)]
+    #[case("0B10", 2)]
+    #[case("+10", 10)]
+    #[case("+0x10", 16)]
+    #[case("+0X10", 16)]
+    #[case("+0o10", 8)]
+    #[case("+0O10", 8)]
+    #[case("+0b10", 2)]
+    #[case("+0B10", 2)]
+    #[case("-10", -10)]
+    #[case("-0x10", -16)]
+    #[case("-0X10", -16)]
+    #[case("-0o10", -8)]
+    #[case("-0O10", -8)]
+    #[case("-0b10", -2)]
+    #[case("-0B10", -2)]
+    fn test_parse_int_i32(#[case] s: &str, #[case] x: i32) {
+        assert_eq!(parse_int::<i32>(s).unwrap(), x);
+    }
+
+    #[rstest]
+    #[case("")]
+    #[case("+")]
+    #[case("-")]
+    #[case("0x")]
+    #[case("0o")]
+    #[case("0b")]
+    #[case("0x+")]
+    #[case("0o+")]
+    #[case("0b+")]
+    #[case("0x-")]
+    #[case("0o-")]
+    #[case("0b-")]
+    #[case("0xg")]
+    #[case("0o9")]
+    #[case("0b2")]
+    #[case("feed")]
+    #[case(" 42 ")]
+    #[case("42.")]
+    #[case("42.0")]
+    #[case("<=>")]
+    #[case("123456789012345678902134567890")]
+    #[case("-123456789012345678902134567890")]
+    fn test_parse_int_i32_err(#[case] s: &str) {
+        assert!(parse_int::<i32>(s).is_err());
+    }
+}
