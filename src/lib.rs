@@ -117,6 +117,11 @@ mod tests {
     #[case("-0b10", -2)]
     #[case("123_456", 123_456)]
     #[case("-2147483648", -2147483648)]
+    #[case("0x___1___", 1)]
+    #[case("0o___1___", 1)]
+    #[case("0b___1___", 1)]
+    #[case("1___", 1)]
+    #[case("0___", 0)]
     fn test_parse_int_i32(#[case] s: &str, #[case] x: i32) {
         assert_eq!(parse_int::<i32>(s).unwrap(), x);
     }
@@ -125,6 +130,7 @@ mod tests {
     #[case("")]
     #[case("+")]
     #[case("-")]
+    #[case("_")]
     #[case("0x")]
     #[case("0o")]
     #[case("0b")]
@@ -134,6 +140,9 @@ mod tests {
     #[case("0x-")]
     #[case("0o-")]
     #[case("0b-")]
+    #[case("0x_")]
+    #[case("0o_")]
+    #[case("0b_")]
     #[case("0xg")]
     #[case("0o9")]
     #[case("0b2")]
@@ -142,6 +151,7 @@ mod tests {
     #[case("42.")]
     #[case("42.0")]
     #[case("<=>")]
+    #[case("2147483648")]
     #[case("123456789012345678902134567890")]
     #[case("-123456789012345678902134567890")]
     #[case("0X10")]
@@ -153,6 +163,10 @@ mod tests {
     #[case("-0X10")]
     #[case("-0O10")]
     #[case("-0B10")]
+    #[case("___1___")]
+    #[case("_0x10")]
+    #[case("_0o10")]
+    #[case("_0b10")]
     fn test_parse_int_i32_err(#[case] s: &str) {
         assert!(parse_int::<i32>(s).is_err());
     }
