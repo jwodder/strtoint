@@ -9,43 +9,62 @@ pub trait ParseInt {
         Self: Sized;
 }
 
-impl ParseInt for i32 {
-    type Err = ParseIntError;
+pub fn parse_int<T: ParseInt>(s: &str) -> Result<T, <T as ParseInt>::Err> {
+    T::parse_int(s)
+}
 
-    fn parse_int(s: &str) -> Result<Self, Self::Err>
-    where
-        Self: Sized,
-    {
-        let (x, is_pos) = scan_int_str(s)?;
-        if is_pos {
-            Ok(x)
-        } else {
-            // Two's-complement ensures us that MAX < abs(MIN), so this
-            // shouldn't fail:
-            Ok(-x)
+macro_rules! impl_signed {
+    ($($t:ty),* $(,)?) => {
+      $(
+        impl ParseInt for $t {
+            type Err = ParseIntError;
+
+            fn parse_int(s: &str) -> Result<Self, Self::Err>
+            where
+                Self: Sized,
+            {
+                let (x, is_pos) = scan_int_str(s)?;
+                if is_pos {
+                    Ok(x)
+                } else {
+                    // Two's-complement ensures us that MAX < abs(MIN), so this
+                    // shouldn't fail:
+                    Ok(-x)
+                }
+            }
         }
+      )*
     }
 }
 
-impl ParseInt for u32 {
-    type Err = ParseIntError;
+macro_rules! impl_unsigned {
+    ($($t:ty),* $(,)?) => {
+      $(
+        impl ParseInt for $t {
+            type Err = ParseIntError;
 
-    fn parse_int(s: &str) -> Result<Self, Self::Err>
-    where
-        Self: Sized,
-    {
-        let (x, is_pos) = scan_int_str(s)?;
-        if !is_pos {
-            // Parsing a negative number as an unsigned number; force an
-            // appropriate error:
-            return <Self as Num>::from_str_radix("-1", 10);
+            fn parse_int(s: &str) -> Result<Self, Self::Err>
+            where
+                Self: Sized,
+            {
+                let (x, is_pos) = scan_int_str(s)?;
+                if !is_pos {
+                    // Parsing a negative number as an unsigned number; force an
+                    // appropriate error:
+                    return <Self as Num>::from_str_radix("-1", 10);
+                }
+                Ok(x)
+            }
         }
-        Ok(x)
+      )*
     }
 }
+
+impl_signed!(i8, i16, i32, i64, i128, isize);
+impl_unsigned!(u8, u16, u32, u64, u128, usize);
 
 fn scan_int_str<N: Num>(s: &str) -> Result<(N, bool), <N as Num>::FromStrRadixErr> {
-    // bool is true for positive, false for negative
+    // The returned bool is true for positive, false for negative
     let (s, is_pos) = {
         if let Some(t) = s.strip_prefix('+') {
             (t, true)
