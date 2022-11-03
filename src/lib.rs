@@ -1,3 +1,4 @@
+use core::fmt;
 use core::iter::Iterator;
 
 pub trait ParseInt {
@@ -19,7 +20,20 @@ pub enum ParseIntError {
     OutOfRange,
 }
 
-// TODO: Impl Display and Error for ParseIntError
+impl fmt::Display for ParseIntError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ParseIntError::NoDigits => write!(f, "no digits in input"),
+            ParseIntError::InvalidCharacter { c, position } => {
+                write!(f, "invalid character {:?} at position {}", c, position)
+            }
+            ParseIntError::OutOfRange => write!(f, "number is out of range for numeric type"),
+        }
+    }
+}
+
+// TODO: Unstable?
+//impl core::error::Error for ParseIntError {}
 
 macro_rules! implement {
     ($($t:ty),* $(,)?) => {
@@ -72,6 +86,8 @@ macro_rules! implement {
                     if b == b'_' {
                         continue;
                     }
+                    // TODO: Problem: If `b` is the start of a non-ASCII
+                    // character, we'll only report the first byte:
                     let digit = (b as char).to_digit(radix).ok_or_else(|| ParseIntError::InvalidCharacter {c: b as char, position: i})?;
                     value = value.checked_mul(radix as $t).ok_or(ParseIntError::OutOfRange)?;
                     if is_positive {
