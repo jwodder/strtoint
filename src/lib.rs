@@ -1,5 +1,4 @@
 use core::fmt;
-use core::iter::Iterator;
 
 pub trait ParseInt {
     type Err;
@@ -25,9 +24,9 @@ impl fmt::Display for ParseIntError {
         match self {
             ParseIntError::NoDigits => write!(f, "no digits in input"),
             ParseIntError::InvalidCharacter { c, position } => {
-                write!(f, "invalid character {:?} at position {}", c, position)
+                write!(f, "invalid character {:?} at byte position {}", c, position)
             }
-            ParseIntError::OutOfRange => write!(f, "number is out of range for numeric type"),
+            ParseIntError::OutOfRange => write!(f, "value is out of range for numeric type"),
         }
     }
 }
@@ -45,17 +44,17 @@ macro_rules! implement {
             where
                 Self: Sized,
             {
-                let mut pos = 0;
+                let mut offset = 0;
                 let is_positive = {
                     if let Some(t) = s.strip_prefix('+') {
-                        pos += 1;
+                        offset += 1;
                         s = t;
                         true
                     } else if let Some(t) = s.strip_prefix('-') {
                         if <$t>::MIN == 0 {
-                            return Err(ParseIntError::InvalidCharacter {c: '-', position: pos});
+                            return Err(ParseIntError::InvalidCharacter {c: '-', position: 0});
                         }
-                        pos += 1;
+                        offset += 1;
                         s = t;
                         false
                     } else {
@@ -64,31 +63,28 @@ macro_rules! implement {
                 };
                 let radix = {
                     if let Some(t) = s.strip_prefix("0x") {
-                        pos += 2;
+                        offset += 2;
                         s = t;
                         16
                     } else if let Some(t) = s.strip_prefix("0o") {
-                        pos += 2;
+                        offset += 2;
                         s = t;
                         8
                     } else if let Some(t) = s.strip_prefix("0b") {
-                        pos += 2;
+                        offset += 2;
                         s = t;
                         2
                     } else {
                         10
                     }
                 };
-
                 let mut value: $t = 0;
                 let mut digit_seen = false;
-                for (i, &b) in (pos..).into_iter().zip(s.as_bytes()) {
-                    if b == b'_' {
+                for (i, c) in s.char_indices() {
+                    if c == '_' {
                         continue;
                     }
-                    // TODO: Problem: If `b` is the start of a non-ASCII
-                    // character, we'll only report the first byte:
-                    let digit = (b as char).to_digit(radix).ok_or_else(|| ParseIntError::InvalidCharacter {c: b as char, position: i})?;
+                    let digit = c.to_digit(radix).ok_or_else(|| ParseIntError::InvalidCharacter {c, position: i + offset})?;
                     value = value.checked_mul(radix as $t).ok_or(ParseIntError::OutOfRange)?;
                     if is_positive {
                         value = value.checked_add(digit as $t).ok_or(ParseIntError::OutOfRange)?
