@@ -1,21 +1,78 @@
+//! Parse integers from strings, with support for base prefixes
+//!
+//! `strtoint` provides a function of the same name for parsing integer
+//! literals from strings, with support for the base prefixes `0x`, `0o`, and
+//! `0b` for hexadecimal, octal, and binary literals, respectively.
+//!
+//! ```
+//! use strtoint::strtoint;
+//!
+//! assert_eq!(strtoint::<i32>("123").unwrap(), 123);
+//! assert_eq!(strtoint::<u32>("0xabcd_FFFF").unwrap(), 2882404351);
+//! assert_eq!(strtoint::<i16>("0o644").unwrap(), 420);
+//! assert_eq!(strtoint::<i8>("-0b00101010").unwrap(), -42);
+//! assert!(strtoint::<i64>("42.0").is_err());
+//! ```
 use core::fmt;
 
+/// Parse an integer from a string.
+///
+/// This function follows the same rules as for [Rust's integer literals][1],
+/// with support for signs and without support for integer suffixes.
+/// Specifically, a valid integer string is an optional sign (`+` or `-`, the
+/// latter forbidden for unsigned types), followed by an optional base prefix
+/// (`0x`, `0o`, or `0b`, all lowercase), followed by one or more digits
+/// optionally interspersed with underscores.  Leading & trailing whitespace is
+/// not allowed.
+///
+/// [1]: https://doc.rust-lang.org/stable/reference/tokens.html#integer-literals
+///
+/// This function is implemented for all primitive integer types built in to
+/// Rust, and the `Err` type for all of them is [`StrToIntError`].
+///
+/// # Errors
+///
+/// This function will return an error under the following conditions:
+///
+/// - The input string does not contain any digits after the optional sign and
+///   base prefix
+/// - The input string contains an invalid character, including surrounding or
+///   internal whitespace, an invalid digit for the base in question, an
+///   invalid base prefix, a sign after a base prefix, or a `-` sign for an
+///   unsigned type
+/// - The numeric value represented by the string is outside the range of valid
+///   values for the numeric type
+pub fn strtoint<T: StrToInt>(s: &str) -> Result<T, <T as StrToInt>::Err> {
+    T::strtoint(s)
+}
+
+/// Trait used to implement the [`strtoint()`] function
+///
+/// Call [`strtoint()`] instead of using this trait directly.  You only ever
+/// need to import this trait if you're implementing support for a custom
+/// numeric type in your own crate.
 pub trait StrToInt {
     type Err;
 
+    /// Parse a string as the type in question
     fn strtoint(s: &str) -> Result<Self, Self::Err>
     where
         Self: Sized;
 }
 
-pub fn strtoint<T: StrToInt>(s: &str) -> Result<T, <T as StrToInt>::Err> {
-    T::strtoint(s)
-}
-
+/// Error type for the [`strtoint()`] function
+///
+/// This type is used as the error type for [`strtoint()`] and [`StrToInt`] for
+/// all types covered by this crate.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub enum StrToIntError {
+    /// Returned when the input string contained no digits
     NoDigits,
+    /// Returned when the input string contained an invalid character; `c` is
+    /// the character in question, and `position` is its index in the input
     InvalidCharacter { c: char, position: usize },
+    /// Returned when the numeric value of the input string was out of range
+    /// for the numeric type
     OutOfRange,
 }
 
