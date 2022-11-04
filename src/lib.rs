@@ -139,6 +139,13 @@ mod tests {
     #[case("-0b10", -2)]
     #[case("123_456", 123_456)]
     #[case("-2147483648", -2147483648)]
+    #[case("-0x80000000", -2147483648)]
+    #[case("-0o20000000000", -2147483648)]
+    #[case("-0b10000000000000000000000000000000", -2147483648)]
+    #[case("2147483647", 2147483647)]
+    #[case("0x7fFFffFF", 2147483647)]
+    #[case("0o17777777777", 2147483647)]
+    #[case("0b1111111111111111111111111111111", 2147483647)]
     #[case("0x___1___", 1)]
     #[case("0o___1___", 1)]
     #[case("0b___1___", 1)]
@@ -174,6 +181,10 @@ mod tests {
     #[case("42.0", ParseIntError::InvalidCharacter {c: '.', position: 2})]
     #[case("<=>", ParseIntError::InvalidCharacter {c: '<', position: 0})]
     #[case("2147483648", ParseIntError::OutOfRange)]
+    #[case("0x80000000", ParseIntError::OutOfRange)]
+    #[case("0o20000000000", ParseIntError::OutOfRange)]
+    #[case("0b10000000000000000000000000000000", ParseIntError::OutOfRange)]
+    #[case("-2147483649", ParseIntError::OutOfRange)]
     #[case("123456789012345678902134567890", ParseIntError::OutOfRange)]
     #[case("-123456789012345678902134567890", ParseIntError::OutOfRange)]
     #[case("0X10", ParseIntError::InvalidCharacter {c: 'X', position: 1})]
@@ -189,6 +200,7 @@ mod tests {
     #[case("_0x10", ParseIntError::InvalidCharacter {c: '_', position: 0})]
     #[case("_0o10", ParseIntError::InvalidCharacter {c: '_', position: 0})]
     #[case("_0b10", ParseIntError::InvalidCharacter {c: '_', position: 0})]
+    #[case("12³45", ParseIntError::InvalidCharacter {c: '³', position: 2})]
     fn test_parse_int_i32_err(#[case] s: &str, #[case] err: ParseIntError) {
         assert_eq!(parse_int::<i32>(s).unwrap_err(), err);
     }
