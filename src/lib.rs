@@ -4,7 +4,7 @@
 //! literals from strings, with support for the base prefixes `0x`, `0o`, and
 //! `0b` for hexadecimal, octal, and binary literals, respectively.
 //!
-//! This crate supports parsing into all primitive integer types built in to
+//! This crate supports parsing into all primitive integer types built into
 //! Rust, along with their "NonZero" equivalents.
 //!
 //! If the `std` feature (enabled by default) is disabled, this crate will be
@@ -46,7 +46,7 @@ extern crate std;
 ///
 /// [1]: https://doc.rust-lang.org/stable/reference/tokens.html#integer-literals
 ///
-/// This function is implemented for all primitive integer types built in to
+/// This function is implemented for all primitive integer types built into
 /// Rust, along with their "NonZero" equivalents, and the `Err` type for all of
 /// them is [`StrToIntError`].
 ///

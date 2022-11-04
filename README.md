@@ -9,7 +9,7 @@
 from strings, with support for the base prefixes `0x`, `0o`, and `0b` for
 hexadecimal, octal, and binary literals, respectively.
 
-This crate supports parsing into all primitive integer types built in to Rust,
+This crate supports parsing into all primitive integer types built into Rust,
 along with their "NonZero" equivalents.
 
 If the `std` feature (enabled by default) is disabled, this crate will be built
