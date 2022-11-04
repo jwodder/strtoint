@@ -2,6 +2,14 @@
 name = "strtoint"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.60"
+description = "Parse integers from strings, with support for base prefixes"
+authors = ["John Thorvald Wodder II <strtoint@varonathe.org>"]
+repository = "https://github.com/jwodder/strtoint"
+license = "MIT"
+keywords = ["parse-int", "int", "hexadecimal", "octal", "binary"]
+categories = ["parsing", "text-processing"]
+exclude = ["/.*"]
 
 [dependencies]
 
