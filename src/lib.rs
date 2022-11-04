@@ -24,7 +24,7 @@ impl fmt::Display for StrToIntError {
         match self {
             StrToIntError::NoDigits => write!(f, "no digits in input"),
             StrToIntError::InvalidCharacter { c, position } => {
-                write!(f, "invalid character {:?} at byte position {}", c, position)
+                write!(f, "invalid character {:?} at position {}", c, position)
             }
             StrToIntError::OutOfRange => write!(f, "value is out of range for numeric type"),
         }
@@ -122,6 +122,8 @@ mod tests {
 
     #[rstest]
     #[case("0", 0)]
+    #[case("+0", 0)]
+    #[case("-0", 0)]
     #[case("1", 1)]
     #[case("+1", 1)]
     #[case("-1", -1)]
@@ -205,6 +207,182 @@ mod tests {
         assert_eq!(strtoint::<i32>(s).unwrap_err(), err);
     }
 
+    #[rstest]
+    #[case("0", 0)]
+    #[case("+0", 0)]
+    #[case("1", 1)]
+    #[case("2147483647", 2147483647)]
+    #[case("2147483648", 2147483648)]
+    #[case("4294967295", 4294967295)]
+    fn test_strtoint_u32(#[case] s: &str, #[case] x: u32) {
+        assert_eq!(strtoint::<u32>(s).unwrap(), x);
+    }
+
+    #[rstest]
+    #[case("-1", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("-0", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("-", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("4294967296", StrToIntError::OutOfRange)]
+    fn test_strtoint_u32_err(#[case] s: &str, #[case] err: StrToIntError) {
+        assert_eq!(strtoint::<u32>(s).unwrap_err(), err);
+    }
+
+    #[rstest]
+    #[case("0", 0)]
+    #[case("1", 1)]
+    #[case("-1", -1)]
+    #[case("127", 127)]
+    #[case("-128", -128)]
+    fn test_strtoint_i8(#[case] s: &str, #[case] x: i8) {
+        assert_eq!(strtoint::<i8>(s).unwrap(), x);
+    }
+
+    #[rstest]
+    #[case("128", StrToIntError::OutOfRange)]
+    #[case("-129", StrToIntError::OutOfRange)]
+    fn test_strtoint_i8_err(#[case] s: &str, #[case] err: StrToIntError) {
+        assert_eq!(strtoint::<i8>(s).unwrap_err(), err);
+    }
+
+    #[rstest]
+    #[case("0", 0)]
+    #[case("1", 1)]
+    #[case("127", 127)]
+    #[case("128", 128)]
+    #[case("255", 255)]
+    fn test_strtoint_u8(#[case] s: &str, #[case] x: u8) {
+        assert_eq!(strtoint::<u8>(s).unwrap(), x);
+    }
+
+    #[rstest]
+    #[case("-1", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("-128", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("-129", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("256", StrToIntError::OutOfRange)]
+    fn test_strtoint_u8_err(#[case] s: &str, #[case] err: StrToIntError) {
+        assert_eq!(strtoint::<u8>(s).unwrap_err(), err);
+    }
+
+    #[rstest]
+    #[case("0", 0)]
+    #[case("1", 1)]
+    #[case("-1", -1)]
+    #[case("32767", 32767)]
+    #[case("-32768", -32768)]
+    fn test_strtoint_i16(#[case] s: &str, #[case] x: i16) {
+        assert_eq!(strtoint::<i16>(s).unwrap(), x);
+    }
+
+    #[rstest]
+    #[case("32768", StrToIntError::OutOfRange)]
+    #[case("-32769", StrToIntError::OutOfRange)]
+    fn test_strtoint_i16_err(#[case] s: &str, #[case] err: StrToIntError) {
+        assert_eq!(strtoint::<i16>(s).unwrap_err(), err);
+    }
+
+    #[rstest]
+    #[case("0", 0)]
+    #[case("1", 1)]
+    #[case("32767", 32767)]
+    #[case("32768", 32768)]
+    #[case("65535", 65535)]
+    fn test_strtoint_u16(#[case] s: &str, #[case] x: u16) {
+        assert_eq!(strtoint::<u16>(s).unwrap(), x);
+    }
+
+    #[rstest]
+    #[case("-1", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("-32768", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("-32769", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("65536", StrToIntError::OutOfRange)]
+    fn test_strtoint_u16_err(#[case] s: &str, #[case] err: StrToIntError) {
+        assert_eq!(strtoint::<u16>(s).unwrap_err(), err);
+    }
+
+    #[rstest]
+    #[case("0", 0)]
+    #[case("1", 1)]
+    #[case("-1", -1)]
+    #[case("9223372036854775807", 9223372036854775807)]
+    #[case("-9223372036854775808", -9223372036854775808)]
+    fn test_strtoint_i64(#[case] s: &str, #[case] x: i64) {
+        assert_eq!(strtoint::<i64>(s).unwrap(), x);
+    }
+
+    #[rstest]
+    #[case("9223372036854775808", StrToIntError::OutOfRange)]
+    #[case("-9223372036854775809", StrToIntError::OutOfRange)]
+    fn test_strtoint_i64_err(#[case] s: &str, #[case] err: StrToIntError) {
+        assert_eq!(strtoint::<i64>(s).unwrap_err(), err);
+    }
+
+    #[rstest]
+    #[case("0", 0)]
+    #[case("1", 1)]
+    #[case("9223372036854775807", 9223372036854775807)]
+    #[case("9223372036854775808", 9223372036854775808)]
+    #[case("18446744073709551615", 18446744073709551615)]
+    fn test_strtoint_u64(#[case] s: &str, #[case] x: u64) {
+        assert_eq!(strtoint::<u64>(s).unwrap(), x);
+    }
+
+    #[rstest]
+    #[case("-1", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("-9223372036854775807", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("-9223372036854775808", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("18446744073709551616", StrToIntError::OutOfRange)]
+    fn test_strtoint_u64_err(#[case] s: &str, #[case] err: StrToIntError) {
+        assert_eq!(strtoint::<u64>(s).unwrap_err(), err);
+    }
+
+    #[rstest]
+    #[case("0", 0)]
+    #[case("1", 1)]
+    #[case("-1", -1)]
+    #[case(
+        "170141183460469231731687303715884105727",
+        170141183460469231731687303715884105727
+    )]
+    #[case("-170141183460469231731687303715884105728", -170141183460469231731687303715884105728)]
+    fn test_strtoint_i128(#[case] s: &str, #[case] x: i128) {
+        assert_eq!(strtoint::<i128>(s).unwrap(), x);
+    }
+
+    #[rstest]
+    #[case("170141183460469231731687303715884105728", StrToIntError::OutOfRange)]
+    #[case("-170141183460469231731687303715884105729", StrToIntError::OutOfRange)]
+    fn test_strtoint_i128_err(#[case] s: &str, #[case] err: StrToIntError) {
+        assert_eq!(strtoint::<i128>(s).unwrap_err(), err);
+    }
+
+    #[rstest]
+    #[case("0", 0)]
+    #[case("1", 1)]
+    #[case(
+        "170141183460469231731687303715884105727",
+        170141183460469231731687303715884105727
+    )]
+    #[case(
+        "170141183460469231731687303715884105728",
+        170141183460469231731687303715884105728
+    )]
+    #[case(
+        "340282366920938463463374607431768211455",
+        340282366920938463463374607431768211455
+    )]
+    fn test_strtoint_u128(#[case] s: &str, #[case] x: u128) {
+        assert_eq!(strtoint::<u128>(s).unwrap(), x);
+    }
+
+    #[rstest]
+    #[case("-1", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("-170141183460469231731687303715884105727", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("-170141183460469231731687303715884105728", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+    #[case("340282366920938463463374607431768211456", StrToIntError::OutOfRange)]
+    fn test_strtoint_u128_err(#[case] s: &str, #[case] err: StrToIntError) {
+        assert_eq!(strtoint::<u128>(s).unwrap_err(), err);
+    }
+
     #[test]
     fn test_display_error_no_digits() {
         assert_eq!(StrToIntError::NoDigits.to_string(), "no digits in input");
@@ -218,7 +396,7 @@ mod tests {
                 position: 2
             }
             .to_string(),
-            "invalid character '.' at byte position 2"
+            "invalid character '.' at position 2"
         );
     }
 
