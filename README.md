@@ -3,7 +3,7 @@
 [![codecov.io](https://codecov.io/gh/jwodder/strtoint/branch/master/graph/badge.svg)](https://codecov.io/gh/jwodder/strtoint)
 [![MIT License](https://img.shields.io/github/license/jwodder/strtoint.svg)](https://opensource.org/licenses/MIT)
 
-[GitHub](https://github.com/jwodder/strtoint) <!-- | [crates.io](https://crates.io/crates/strtoint) | [Documentation](https://docs.rs/strtoint) --> | [Issues](https://github.com/jwodder/strtoint/issues)
+[GitHub](https://github.com/jwodder/strtoint) | [crates.io](https://crates.io/crates/strtoint) | [Documentation](https://docs.rs/strtoint) | [Issues](https://github.com/jwodder/strtoint/issues)
 
 `strtoint` provides a function of the same name for parsing integer literals
 from strings, with support for the base prefixes `0x`, `0o`, and `0b` for
@@ -15,6 +15,18 @@ along with their "NonZero" equivalents.
 If the `std` feature (enabled by default) is disabled, this crate will be built
 in no-std mode.  The only difference is that `StrToIntError` only implements
 the `std::error::Error` trait under `std`.
+
+Installation
+============
+
+`strtoint` requires version 1.56 of Rust or higher.  To use the `strtoint`
+library in your Cargo project, add the following to your `Cargo.toml`:
+
+```toml
+[dependencies]
+strtoint = "0.1.0-alpha"
+```
+
 
 Examples
 ========
