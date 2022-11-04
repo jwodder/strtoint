@@ -9,6 +9,9 @@
 from strings, with support for the base prefixes `0x`, `0o`, and `0b` for
 hexadecimal, octal, and binary literals, respectively.
 
+This crate supports parsing into all primitive integer types built in to Rust,
+along with their "NonZero" equivalents.
+
 If the `std` feature (enabled by default) is disabled, this crate will be built
 in no-std mode.  The only difference is that `StrToIntError` only implements
 the `std::error::Error` trait under `std`.
@@ -17,6 +20,7 @@ Examples
 ========
 
 ```rust
+use core::num::NonZeroUsize;
 use strtoint::strtoint;
 
 assert_eq!(strtoint::<i32>("123").unwrap(), 123);
@@ -24,4 +28,10 @@ assert_eq!(strtoint::<u32>("0xabcd_FFFF").unwrap(), 2882404351);
 assert_eq!(strtoint::<i16>("0o644").unwrap(), 420);
 assert_eq!(strtoint::<i8>("-0b00101010").unwrap(), -42);
 assert!(strtoint::<i64>("42.0").is_err());
+
+assert_eq!(
+    strtoint::<NonZeroUsize>("123_456").unwrap(),
+    NonZeroUsize::new(123456).unwrap()
+);
+assert!(strtoint::<NonZeroUsize>("0").is_err());
 ```

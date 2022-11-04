@@ -4,11 +4,15 @@
 //! literals from strings, with support for the base prefixes `0x`, `0o`, and
 //! `0b` for hexadecimal, octal, and binary literals, respectively.
 //!
+//! This crate supports parsing into all primitive integer types built in to
+//! Rust, along with their "NonZero" equivalents.
+//!
 //! If the `std` feature (enabled by default) is disabled, this crate will be
 //! built in no-std mode.  The only difference is that [`StrToIntError`] only
 //! implements the [`std::error::Error`] trait under `std`.
 //!
 //! ```
+//! use core::num::NonZeroUsize;
 //! use strtoint::strtoint;
 //!
 //! assert_eq!(strtoint::<i32>("123").unwrap(), 123);
@@ -16,6 +20,12 @@
 //! assert_eq!(strtoint::<i16>("0o644").unwrap(), 420);
 //! assert_eq!(strtoint::<i8>("-0b00101010").unwrap(), -42);
 //! assert!(strtoint::<i64>("42.0").is_err());
+//!
+//! assert_eq!(
+//!     strtoint::<NonZeroUsize>("123_456").unwrap(),
+//!     NonZeroUsize::new(123456).unwrap()
+//! );
+//! assert!(strtoint::<NonZeroUsize>("0").is_err());
 //! ```
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -37,7 +47,8 @@ extern crate std;
 /// [1]: https://doc.rust-lang.org/stable/reference/tokens.html#integer-literals
 ///
 /// This function is implemented for all primitive integer types built in to
-/// Rust, and the `Err` type for all of them is [`StrToIntError`].
+/// Rust, along with their "NonZero" equivalents, and the `Err` type for all of
+/// them is [`StrToIntError`].
 ///
 /// # Errors
 ///
@@ -101,7 +112,7 @@ impl fmt::Display for StrToIntError {
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl std::error::Error for StrToIntError {}
 
-macro_rules! implement {
+macro_rules! impl_prim {
     ($($t:ty),* $(,)?) => {
       $(
         impl StrToInt for $t {
@@ -180,4 +191,32 @@ macro_rules! implement {
     }
 }
 
-implement!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize);
+macro_rules! impl_nonzero {
+    ($t:ty, $inner:ty) => {
+        impl StrToInt for $t {
+            type Err = StrToIntError;
+
+            fn strtoint(s: &str) -> Result<Self, Self::Err>
+            where
+                Self: Sized,
+            {
+                let value = <$inner>::strtoint(s)?;
+                <$t>::new(value).ok_or(StrToIntError::OutOfRange)
+            }
+        }
+    };
+}
+
+impl_prim!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize);
+impl_nonzero!(core::num::NonZeroI8, i8);
+impl_nonzero!(core::num::NonZeroI16, i16);
+impl_nonzero!(core::num::NonZeroI32, i32);
+impl_nonzero!(core::num::NonZeroI64, i64);
+impl_nonzero!(core::num::NonZeroI128, i128);
+impl_nonzero!(core::num::NonZeroIsize, isize);
+impl_nonzero!(core::num::NonZeroU8, u8);
+impl_nonzero!(core::num::NonZeroU16, u16);
+impl_nonzero!(core::num::NonZeroU32, u32);
+impl_nonzero!(core::num::NonZeroU64, u64);
+impl_nonzero!(core::num::NonZeroU128, u128);
+impl_nonzero!(core::num::NonZeroUsize, usize);
