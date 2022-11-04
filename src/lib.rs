@@ -18,6 +18,7 @@
 //! assert!(strtoint::<i64>("42.0").is_err());
 //! ```
 #![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 use core::fmt;
 
 #[cfg(feature = "std")]
@@ -97,6 +98,7 @@ impl fmt::Display for StrToIntError {
 }
 
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 impl std::error::Error for StrToIntError {}
 
 macro_rules! implement {

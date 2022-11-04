@@ -19,3 +19,7 @@ rstest = { version = "0.15.0", default-features = false }
 [features]
 default = ["std"]
 std = []
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
