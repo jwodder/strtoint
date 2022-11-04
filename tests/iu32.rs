@@ -35,6 +35,9 @@ use strtoint::{strtoint, StrToIntError};
 #[case("0b___1___", 1)]
 #[case("1___", 1)]
 #[case("0___", 0)]
+#[case("0644", 644)]
+#[case("00000000000000000000000000000000000000001", 1)]
+#[case("0_______________________________________1", 1)]
 fn test_strtoint_i32(#[case] s: &str, #[case] x: i32) {
     assert_eq!(strtoint::<i32>(s).unwrap(), x);
 }
@@ -50,9 +53,11 @@ fn test_strtoint_i32(#[case] s: &str, #[case] x: i32) {
 #[case("0x+", StrToIntError::InvalidCharacter {c: '+', position: 2})]
 #[case("0o+", StrToIntError::InvalidCharacter {c: '+', position: 2})]
 #[case("0b+", StrToIntError::InvalidCharacter {c: '+', position: 2})]
+#[case("0x+123", StrToIntError::InvalidCharacter {c: '+', position: 2})]
 #[case("0x-", StrToIntError::InvalidCharacter {c: '-', position: 2})]
 #[case("0o-", StrToIntError::InvalidCharacter {c: '-', position: 2})]
 #[case("0b-", StrToIntError::InvalidCharacter {c: '-', position: 2})]
+#[case("0x-123", StrToIntError::InvalidCharacter {c: '-', position: 2})]
 #[case("0x_", StrToIntError::NoDigits)]
 #[case("0o_", StrToIntError::NoDigits)]
 #[case("0b_", StrToIntError::NoDigits)]
