@@ -9,6 +9,10 @@
 from strings, with support for the base prefixes `0x`, `0o`, and `0b` for
 hexadecimal, octal, and binary literals, respectively.
 
+If the `std` feature (enabled by default) is disabled, this crate will be built
+in no-std mode.  The only difference is that `StrToIntError` only implements
+the `std::error::Error` trait under `std`.
+
 Examples
 ========
 
