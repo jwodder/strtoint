@@ -2,7 +2,7 @@
 name = "strtoint"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.56"
 description = "Parse integers from strings, with support for base prefixes"
 authors = ["John Thorvald Wodder II <strtoint@varonathe.org>"]
 repository = "https://github.com/jwodder/strtoint"
@@ -14,7 +14,7 @@ exclude = ["/.*"]
 [dependencies]
 
 [dev-dependencies]
-rstest = { version = "0.15.0", default-features = false }
+test-case = "2.2.2"
 
 [features]
 default = ["std"]
