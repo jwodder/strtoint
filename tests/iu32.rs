@@ -1,3 +1,4 @@
+use core::num::{NonZeroI32, NonZeroU32};
 use rstest::rstest;
 use strtoint::{strtoint, StrToIntError};
 
@@ -106,4 +107,44 @@ fn test_strtoint_u32(#[case] s: &str, #[case] x: u32) {
 #[case("4294967296", StrToIntError::OutOfRange)]
 fn test_strtoint_u32_err(#[case] s: &str, #[case] err: StrToIntError) {
     assert_eq!(strtoint::<u32>(s).unwrap_err(), err);
+}
+
+#[rstest]
+#[case("1", 1)]
+#[case("-1", -1)]
+#[case("2147483647", 2147483647)]
+#[case("-2147483648", -2147483648)]
+fn test_strtoint_nonzero_i32(#[case] s: &str, #[case] x: i32) {
+    assert_eq!(
+        strtoint::<NonZeroI32>(s).unwrap(),
+        NonZeroI32::new(x).unwrap()
+    );
+}
+
+#[rstest]
+#[case("0", StrToIntError::OutOfRange)]
+#[case("2147483648", StrToIntError::OutOfRange)]
+#[case("-2147483649", StrToIntError::OutOfRange)]
+fn test_strtoint_nonzero_i32_err(#[case] s: &str, #[case] err: StrToIntError) {
+    assert_eq!(strtoint::<NonZeroI32>(s).unwrap_err(), err);
+}
+
+#[rstest]
+#[case("1", 1)]
+#[case("2147483647", 2147483647)]
+#[case("2147483648", 2147483648)]
+#[case("4294967295", 4294967295)]
+fn test_strtoint_nonzero_u32(#[case] s: &str, #[case] x: u32) {
+    assert_eq!(
+        strtoint::<NonZeroU32>(s).unwrap(),
+        NonZeroU32::new(x).unwrap()
+    );
+}
+
+#[rstest]
+#[case("0", StrToIntError::OutOfRange)]
+#[case("-1", StrToIntError::InvalidCharacter {c: '-', position: 0})]
+#[case("4294967296", StrToIntError::OutOfRange)]
+fn test_strtoint_nonzero_u32_err(#[case] s: &str, #[case] err: StrToIntError) {
+    assert_eq!(strtoint::<NonZeroU32>(s).unwrap_err(), err);
 }
