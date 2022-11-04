@@ -4,6 +4,10 @@
 //! literals from strings, with support for the base prefixes `0x`, `0o`, and
 //! `0b` for hexadecimal, octal, and binary literals, respectively.
 //!
+//! If the `std` feature (enabled by default) is disabled, this crate will be
+//! built in no-std mode.  The only difference is that [`StrToIntError`] only
+//! implements the [`std::error::Error`] trait under `std`.
+//!
 //! ```
 //! use strtoint::strtoint;
 //!
@@ -13,7 +17,11 @@
 //! assert_eq!(strtoint::<i8>("-0b00101010").unwrap(), -42);
 //! assert!(strtoint::<i64>("42.0").is_err());
 //! ```
+#![no_std]
 use core::fmt;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 /// Parse an integer from a string.
 ///
@@ -88,8 +96,8 @@ impl fmt::Display for StrToIntError {
     }
 }
 
-// TODO: Unstable?
-//impl core::error::Error for StrToIntError {}
+#[cfg(feature = "std")]
+impl std::error::Error for StrToIntError {}
 
 macro_rules! implement {
     ($($t:ty),* $(,)?) => {

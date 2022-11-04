@@ -8,10 +8,14 @@ authors = ["John Thorvald Wodder II <strtoint@varonathe.org>"]
 repository = "https://github.com/jwodder/strtoint"
 license = "MIT"
 keywords = ["parse-int", "int", "hexadecimal", "octal", "binary"]
-categories = ["parsing", "text-processing"]
+categories = ["no-std", "parsing", "text-processing"]
 exclude = ["/.*"]
 
 [dependencies]
 
 [dev-dependencies]
 rstest = { version = "0.15.0", default-features = false }
+
+[features]
+default = ["std"]
+std = []
