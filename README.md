@@ -27,6 +27,14 @@ library in your Cargo project, add the following to your `Cargo.toml`:
 strtoint = "0.1.0"
 ```
 
+To use `strtoint` with the `std` feature disabled (i.e., in no-std mode), add
+the following instead:
+
+```toml
+[dependencies]
+strtoint = { version = "0.1.0", default-features = false }
+```
+
 
 Examples
 ========
