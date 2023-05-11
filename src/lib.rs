@@ -1,5 +1,5 @@
-//! Parse integers from strings, with support for base prefixes
-//!
+#![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 //! `strtoint` provides a function of the same name for parsing integer
 //! literals from strings, with support for the base prefixes `0x`, `0o`, and
 //! `0b` for hexadecimal, octal, and binary literals, respectively.
@@ -10,6 +10,9 @@
 //! If the `std` feature (enabled by default) is disabled, this crate will be
 //! built in no-std mode.  The only difference is that [`StrToIntError`] only
 //! implements the [`std::error::Error`] trait under `std`.
+//!
+//! Examples
+//! ========
 //!
 //! ```
 //! use core::num::NonZeroUsize;
@@ -27,8 +30,6 @@
 //! );
 //! assert!(strtoint::<NonZeroUsize>("0").is_err());
 //! ```
-#![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
 use core::fmt;
 
 #[cfg(feature = "std")]
