@@ -1,14 +1,17 @@
-use strtoint::StrToIntError;
+use strtoint::{IntAccumulatorError, StrToPrimIntError};
 
 #[test]
 fn test_display_error_no_digits() {
-    assert_eq!(StrToIntError::NoDigits.to_string(), "no digits in input");
+    assert_eq!(
+        StrToPrimIntError::NoDigits.to_string(),
+        "no digits in input"
+    );
 }
 
 #[test]
 fn test_display_error_invalid_character() {
     assert_eq!(
-        StrToIntError::InvalidCharacter {
+        StrToPrimIntError::InvalidCharacter {
             c: '.',
             position: 2
         }
@@ -20,7 +23,11 @@ fn test_display_error_invalid_character() {
 #[test]
 fn test_display_error_out_of_range() {
     assert_eq!(
-        StrToIntError::OutOfRange.to_string(),
-        "value is out of range for numeric type"
+        StrToPrimIntError::Accumulator {
+            source: IntAccumulatorError::OutOfRange,
+            position: 5
+        }
+        .to_string(),
+        "numeric error at position 2: accumulated value is out of range for numeric type"
     );
 }

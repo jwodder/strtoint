@@ -63,7 +63,9 @@ extern crate std;
 ///   unsigned type
 /// - The numeric value represented by the string is outside the range of valid
 ///   values for the numeric type
-pub fn strtoint<T: StrToInt>(s: &str) -> Result<T, <T as StrToInt>::Err> {
+pub fn strtoint<T: StrToInt>(
+    s: &str,
+) -> Result<T, StrToIntError<<<T as StrToInt>::Accumulator as Accumulator<T>>::Err>> {
     T::strtoint(s)
 }
 
@@ -72,13 +74,98 @@ pub fn strtoint<T: StrToInt>(s: &str) -> Result<T, <T as StrToInt>::Err> {
 /// Call [`strtoint()`] instead of using this trait directly.  You only ever
 /// need to import this trait if you're implementing support for a custom
 /// numeric type in your own crate.
-pub trait StrToInt {
-    type Err;
+pub trait StrToInt: Sized {
+    type Accumulator: Accumulator<Self>;
+
+    fn positive_from_digits<I: IntoIterator<Item = u32>>(
+        base: Base,
+        digits: I,
+    ) -> Result<Self, <Self::Accumulator as Accumulator<Self>>::Err> {
+        let mut acc = Self::Accumulator::start_positive(base)?;
+        for d in digits {
+            acc.push_digit(d)?;
+        }
+        acc.finish()
+    }
+
+    fn negative_from_digits<I: IntoIterator<Item = u32>>(
+        base: Base,
+        digits: I,
+    ) -> Result<Self, <Self::Accumulator as Accumulator<Self>>::Err> {
+        let mut acc = Self::Accumulator::start_negative(base)?;
+        for d in digits {
+            acc.push_digit(d)?;
+        }
+        acc.finish()
+    }
 
     /// Parse a string as the type in question
-    fn strtoint(s: &str) -> Result<Self, Self::Err>
-    where
-        Self: Sized;
+    fn strtoint(
+        mut s: &str,
+    ) -> Result<Self, StrToIntError<<Self::Accumulator as Accumulator<Self>>::Err>> {
+        let mut offset = 0;
+        let is_positive = {
+            if let Some(t) = s.strip_prefix('+') {
+                offset += 1;
+                s = t;
+                true
+            } else if let Some(t) = s.strip_prefix('-') {
+                offset += 1;
+                s = t;
+                false
+            } else {
+                true
+            }
+        };
+        let base = {
+            if let Some(t) = s.strip_prefix("0x") {
+                offset += 2;
+                s = t;
+                Base::HEXADECIMAL
+            } else if let Some(t) = s.strip_prefix("0o") {
+                offset += 2;
+                s = t;
+                Base::OCTAL
+            } else if let Some(t) = s.strip_prefix("0b") {
+                offset += 2;
+                s = t;
+                Base::BINARY
+            } else {
+                Base::DECIMAL
+            }
+        };
+        let mut acc = if is_positive {
+            Self::Accumulator::start_positive(base)
+        } else {
+            Self::Accumulator::start_negative(base)
+        }
+        .map_err(|source| StrToIntError::Accumulator {
+            source,
+            position: offset,
+        })?;
+        let mut digit_seen = false;
+        let mut position = offset;
+        for (i, c) in s.char_indices() {
+            position = offset + i;
+            if c == '_' {
+                if !digit_seen && base == Base::DECIMAL {
+                    return Err(StrToIntError::InvalidCharacter { c, position });
+                }
+                continue;
+            }
+            let digit = base
+                .parse_digit(c)
+                .ok_or(StrToIntError::InvalidCharacter { c, position })?;
+            acc.push_digit(digit)
+                .map_err(|source| StrToIntError::Accumulator { source, position })?;
+            digit_seen = true;
+        }
+        if !digit_seen {
+            return Err(StrToIntError::NoDigits);
+        }
+        acc.finish()
+            .map_err(|source| StrToIntError::Accumulator { source, position })
+    }
 }
 
 /// Error type for the [`strtoint()`] function
@@ -86,129 +173,249 @@ pub trait StrToInt {
 /// This type is used as the error type for [`strtoint()`] and [`StrToInt`] for
 /// all types covered by this crate.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
-pub enum StrToIntError {
+pub enum StrToIntError<E> {
     /// Returned when the input string contained no digits
     NoDigits,
     /// Returned when the input string contained an invalid character; `c` is
     /// the character in question, and `position` is its index in the input
-    InvalidCharacter { c: char, position: usize },
-    /// Returned when the numeric value of the input string was out of range
-    /// for the numeric type
-    OutOfRange,
+    InvalidCharacter {
+        c: char,
+        position: usize,
+    },
+    Accumulator {
+        source: E,
+        position: usize,
+    },
 }
 
-impl fmt::Display for StrToIntError {
+impl<E: fmt::Display> fmt::Display for StrToIntError<E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             StrToIntError::NoDigits => write!(f, "no digits in input"),
             StrToIntError::InvalidCharacter { c, position } => {
                 write!(f, "invalid character {:?} at position {}", c, position)
             }
-            StrToIntError::OutOfRange => write!(f, "value is out of range for numeric type"),
+            StrToIntError::Accumulator { source, position } => {
+                write!(f, "numeric error at position {}: {}", position, source)
+            }
         }
     }
 }
 
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-impl std::error::Error for StrToIntError {}
+impl<E: std::error::Error + 'static> std::error::Error for StrToIntError<E> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            StrToIntError::Accumulator { source, .. } => Some(source),
+            _ => None,
+        }
+    }
+}
 
-macro_rules! impl_prim {
+pub trait Accumulator<Int>: Sized {
+    type Err;
+
+    fn start_positive(base: Base) -> Result<Self, Self::Err>;
+
+    // This method should error when `Int` is unsigned.
+    fn start_negative(base: Base) -> Result<Self, Self::Err>;
+
+    // This method is called when parsing an integer string in a context where
+    // "`-0`" is acceptable.
+    // This method should be overwritten by accumulators for types that can be
+    // zero but not negative.
+    fn start_nonpositive(base: Base) -> Result<Self, Self::Err> {
+        Self::start_negative(base)
+    }
+
+    fn push_digit(&mut self, digit: u32) -> Result<(), Self::Err>;
+
+    fn finish(self) -> Result<Int, Self::Err>;
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct IntAccumulator<Int> {
+    base: Base,
+    cast_base: Int,
+    value: Int,
+    negative: bool,
+    any_digits: bool,
+}
+
+macro_rules! impl_signed {
     ($($t:ty),* $(,)?) => {
       $(
         impl StrToInt for $t {
-            type Err = StrToIntError;
+            type Accumulator = IntAccumulator<$t>;
+        }
 
-            fn strtoint(mut s: &str) -> Result<Self, Self::Err>
-            where
-                Self: Sized,
-            {
-                let mut offset = 0;
-                let is_positive = {
-                    if let Some(t) = s.strip_prefix('+') {
-                        offset += 1;
-                        s = t;
-                        true
-                    } else if let Some(t) = s.strip_prefix('-') {
-                        if <$t>::MIN == 0 {
-                            return Err(StrToIntError::InvalidCharacter {c: '-', position: 0});
-                        }
-                        offset += 1;
-                        s = t;
-                        false
-                    } else {
-                        true
-                    }
-                };
-                let radix = {
-                    if let Some(t) = s.strip_prefix("0x") {
-                        offset += 2;
-                        s = t;
-                        16
-                    } else if let Some(t) = s.strip_prefix("0o") {
-                        offset += 2;
-                        s = t;
-                        8
-                    } else if let Some(t) = s.strip_prefix("0b") {
-                        offset += 2;
-                        s = t;
-                        2
-                    } else {
-                        10
-                    }
-                };
-                let mut value: $t = 0;
-                let mut digit_seen = false;
-                for (i, c) in s.char_indices() {
-                    if c == '_' {
-                        if !digit_seen && radix == 10 {
-                            return Err(StrToIntError::InvalidCharacter{c, position: i + offset});
-                        }
-                        continue;
-                    }
-                    let digit = c
-                        .to_digit(radix)
-                        .ok_or_else(|| StrToIntError::InvalidCharacter {
-                            c,
-                            position: i + offset,
-                        })?;
-                    value = value
-                        .checked_mul(radix as $t)
-                        .ok_or(StrToIntError::OutOfRange)?;
-                    value = if is_positive {
-                        value.checked_add(digit as $t)
-                    } else {
-                        value.checked_sub(digit as $t)
-                    }.ok_or(StrToIntError::OutOfRange)?;
-                    digit_seen = true;
+        impl Accumulator<$t> for IntAccumulator<$t> {
+            type Err = IntAccumulatorError;
+
+            fn start_positive(base: Base) -> Result<Self, IntAccumulatorError> {
+                Ok(IntAccumulator {
+                    base,
+                    cast_base: base.get() as $t,
+                    value: 0,
+                    negative: false,
+                    any_digits: false,
+                })
+            }
+
+            fn start_negative(base: Base) -> Result<Self, IntAccumulatorError> {
+                Ok(IntAccumulator {
+                    base,
+                    cast_base: base.get() as $t,
+                    value: 0,
+                    negative: true,
+                    any_digits: false,
+                })
+            }
+
+            fn push_digit(&mut self, digit: u32) -> Result<(), IntAccumulatorError> {
+                if digit >= self.base.get() {
+                    return Err(IntAccumulatorError::DigitTooLarge {
+                        base: self.base,
+                        digit,
+                    });
                 }
-                if !digit_seen {
-                    return Err(StrToIntError::NoDigits);
+                let digit = digit as $t;
+                self.value = self
+                    .value
+                    .checked_mul(self.cast_base)
+                    .and_then(|v| {
+                        if self.negative {
+                            v.checked_sub(digit)
+                        } else {
+                            v.checked_add(digit)
+                        }
+                    })
+                    .ok_or(IntAccumulatorError::OutOfRange)?;
+                self.any_digits = true;
+                Ok(())
+            }
+
+            fn finish(self) -> Result<$t, IntAccumulatorError> {
+                if self.any_digits {
+                    Ok(self.value)
+                } else {
+                    Err(IntAccumulatorError::NoDigits)
                 }
-                Ok(value)
             }
         }
       )*
     }
 }
 
+macro_rules! impl_unsigned {
+    ($($t:ty),* $(,)?) => {
+      $(
+        impl StrToInt for $t {
+            type Accumulator = IntAccumulator<$t>;
+        }
+
+        impl Accumulator<$t> for IntAccumulator<$t> {
+            type Err = IntAccumulatorError;
+
+            fn start_positive(base: Base) -> Result<Self, IntAccumulatorError> {
+                Ok(IntAccumulator {
+                    base,
+                    cast_base: base.get() as $t,
+                    value: 0,
+                    negative: false,
+                    any_digits: false,
+                })
+            }
+
+            fn start_negative(_base: Base) -> Result<Self, IntAccumulatorError> {
+                Err(IntAccumulatorError::CannotBeNegative)
+            }
+
+            fn start_nonpositive(base: Base) -> Result<Self, Self::Err> {
+                Ok(IntAccumulator {
+                    base,
+                    cast_base: base.get() as $t,
+                    value: 0,
+                    negative: true,
+                    any_digits: false,
+                })
+            }
+
+            fn push_digit(&mut self, digit: u32) -> Result<(), IntAccumulatorError> {
+                if digit >= self.base.get() {
+                    return Err(IntAccumulatorError::DigitTooLarge {
+                        base: self.base,
+                        digit,
+                    });
+                }
+                let digit = digit as $t;
+                self.value = self
+                    .value
+                    .checked_mul(self.cast_base)
+                    .and_then(|v| {
+                        if self.negative {
+                            v.checked_sub(digit)
+                        } else {
+                            v.checked_add(digit)
+                        }
+                    })
+                    .ok_or(IntAccumulatorError::OutOfRange)?;
+                self.any_digits = true;
+                Ok(())
+            }
+
+            fn finish(self) -> Result<$t, IntAccumulatorError> {
+                if self.any_digits {
+                    Ok(self.value)
+                } else {
+                    Err(IntAccumulatorError::NoDigits)
+                }
+            }
+        }
+      )*
+    }
+}
+
+impl_signed!(i8, i16, i32, i64, i128, isize);
+impl_unsigned!(u8, u16, u32, u64, u128, usize);
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct NonZeroAccumulator<A>(A);
+
 macro_rules! impl_nonzero {
     ($t:ty, $inner:ty) => {
         impl StrToInt for $t {
-            type Err = StrToIntError;
+            type Accumulator = NonZeroAccumulator<IntAccumulator<$inner>>;
+        }
 
-            fn strtoint(s: &str) -> Result<Self, Self::Err>
-            where
-                Self: Sized,
-            {
-                let value = <$inner>::strtoint(s)?;
-                <$t>::new(value).ok_or(StrToIntError::OutOfRange)
+        impl Accumulator<$t> for NonZeroAccumulator<IntAccumulator<$inner>> {
+            type Err = IntAccumulatorError;
+
+            fn start_positive(base: Base) -> Result<Self, IntAccumulatorError> {
+                IntAccumulator::<$inner>::start_positive(base).map(NonZeroAccumulator)
+            }
+
+            fn start_negative(base: Base) -> Result<Self, IntAccumulatorError> {
+                IntAccumulator::<$inner>::start_negative(base).map(NonZeroAccumulator)
+            }
+
+            // Do not override `start_nonpositive()`.  Unsigned nonzero types
+            // should error when it's called.
+
+            fn push_digit(&mut self, digit: u32) -> Result<(), IntAccumulatorError> {
+                self.0.push_digit(digit)
+            }
+
+            fn finish(self) -> Result<$t, IntAccumulatorError> {
+                self.0
+                    .finish()
+                    .and_then(|n| <$t>::new(n).ok_or(IntAccumulatorError::OutOfRange))
             }
         }
     };
 }
 
-impl_prim!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize);
 impl_nonzero!(core::num::NonZeroI8, i8);
 impl_nonzero!(core::num::NonZeroI16, i16);
 impl_nonzero!(core::num::NonZeroI32, i32);
@@ -221,3 +428,79 @@ impl_nonzero!(core::num::NonZeroU32, u32);
 impl_nonzero!(core::num::NonZeroU64, u64);
 impl_nonzero!(core::num::NonZeroU128, u128);
 impl_nonzero!(core::num::NonZeroUsize, usize);
+
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+pub enum IntAccumulatorError {
+    NoDigits,
+    OutOfRange,
+    DigitTooLarge { base: Base, digit: u32 },
+    CannotBeNegative,
+}
+
+impl fmt::Display for IntAccumulatorError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            IntAccumulatorError::NoDigits => write!(f, "no digits provided to accumulator"),
+            IntAccumulatorError::OutOfRange => {
+                write!(f, "accumulated value is out of range for numeric type")
+            }
+            IntAccumulatorError::DigitTooLarge { base, digit } => write!(
+                f,
+                "accumulator received digit {} out of range for base {}",
+                digit,
+                base.get()
+            ),
+            IntAccumulatorError::CannotBeNegative => {
+                write!(f, "cannot start negative value for unsigned numeric type")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+impl std::error::Error for IntAccumulatorError {}
+
+#[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct Base(u32);
+
+impl Base {
+    pub const DECIMAL: Base = Base(10);
+    pub const HEXADECIMAL: Base = Base(16);
+    pub const OCTAL: Base = Base(8);
+    pub const BINARY: Base = Base(2);
+
+    pub fn get(&self) -> u32 {
+        self.0
+    }
+
+    pub fn parse_digit(&self, c: char) -> Option<u32> {
+        c.to_digit(self.0)
+    }
+}
+
+impl TryFrom<u32> for Base {
+    type Error = BaseError;
+
+    fn try_from(value: u32) -> Result<Base, BaseError> {
+        match value {
+            2..=36 => Ok(Base(value)),
+            _ => Err(BaseError),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct BaseError;
+
+impl fmt::Display for BaseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "integer base must be between 2 and 36, inclusive")
+    }
+}
+
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+impl std::error::Error for BaseError {}
+
+pub type StrToPrimIntError = StrToIntError<IntAccumulatorError>;

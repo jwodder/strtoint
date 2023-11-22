@@ -1,5 +1,7 @@
+mod util;
+use crate::util::assert_out_of_range;
 use core::num::{NonZeroI32, NonZeroU32};
-use strtoint::{strtoint, StrToIntError};
+use strtoint::{strtoint, StrToPrimIntError};
 use test_case::test_case;
 
 #[test_case("0", 0)]
@@ -41,54 +43,54 @@ fn test_strtoint_i32(s: &str, x: i32) {
     assert_eq!(strtoint::<i32>(s).unwrap(), x);
 }
 
-#[test_case("", StrToIntError::NoDigits; "empty")]
-#[test_case("+", StrToIntError::NoDigits; "plus")]
-#[test_case("-", StrToIntError::NoDigits; "minus")]
-#[test_case("_", StrToIntError::InvalidCharacter {c: '_', position: 0})]
-#[test_case("0x", StrToIntError::NoDigits)]
-#[test_case("0o", StrToIntError::NoDigits)]
-#[test_case("0b", StrToIntError::NoDigits)]
-#[test_case("0x+", StrToIntError::InvalidCharacter {c: '+', position: 2}; "hex_plus")]
-#[test_case("0o+", StrToIntError::InvalidCharacter {c: '+', position: 2}; "oct_plus")]
-#[test_case("0b+", StrToIntError::InvalidCharacter {c: '+', position: 2}; "bin_plus")]
-#[test_case("0x+123", StrToIntError::InvalidCharacter {c: '+', position: 2}; "hex_pos_123")]
-#[test_case("0x-", StrToIntError::InvalidCharacter {c: '-', position: 2}; "hex_minus")]
-#[test_case("0o-", StrToIntError::InvalidCharacter {c: '-', position: 2}; "oct_minus")]
-#[test_case("0b-", StrToIntError::InvalidCharacter {c: '-', position: 2}; "bin_minus")]
-#[test_case("0x-123", StrToIntError::InvalidCharacter {c: '-', position: 2}; "hex_neg_123")]
-#[test_case("0x_", StrToIntError::NoDigits; "hex_under")]
-#[test_case("0o_", StrToIntError::NoDigits; "oct_under")]
-#[test_case("0b_", StrToIntError::NoDigits; "bin_under")]
-#[test_case("0xg", StrToIntError::InvalidCharacter {c: 'g', position: 2})]
-#[test_case("0o9", StrToIntError::InvalidCharacter {c: '9', position: 2})]
-#[test_case("0b2", StrToIntError::InvalidCharacter {c: '2', position: 2})]
-#[test_case("feed", StrToIntError::InvalidCharacter {c: 'f', position: 0})]
-#[test_case(" 42 ", StrToIntError::InvalidCharacter {c: ' ', position: 0}; "42space")]
-#[test_case("42.", StrToIntError::InvalidCharacter {c: '.', position: 2}; "42dot")]
-#[test_case("42.0", StrToIntError::InvalidCharacter {c: '.', position: 2})]
-#[test_case("<=>", StrToIntError::InvalidCharacter {c: '<', position: 0}; "cmp")]
-#[test_case("2147483648", StrToIntError::OutOfRange)]
-#[test_case("0x80000000", StrToIntError::OutOfRange)]
-#[test_case("0o20000000000", StrToIntError::OutOfRange)]
-#[test_case("0b10000000000000000000000000000000", StrToIntError::OutOfRange)]
-#[test_case("-2147483649", StrToIntError::OutOfRange)]
-#[test_case("123456789012345678902134567890", StrToIntError::OutOfRange; "very_big")]
-#[test_case("-123456789012345678902134567890", StrToIntError::OutOfRange; "neg_very_big")]
-#[test_case("0X10", StrToIntError::InvalidCharacter {c: 'X', position: 1})]
-#[test_case("0O10", StrToIntError::InvalidCharacter {c: 'O', position: 1})]
-#[test_case("0B10", StrToIntError::InvalidCharacter {c: 'B', position: 1})]
-#[test_case("+0X10", StrToIntError::InvalidCharacter {c: 'X', position: 2}; "pos_upper_0X")]
-#[test_case("+0O10", StrToIntError::InvalidCharacter {c: 'O', position: 2}; "pos_upper_0O")]
-#[test_case("+0B10", StrToIntError::InvalidCharacter {c: 'B', position: 2}; "pos_upper_0B")]
-#[test_case("-0X10", StrToIntError::InvalidCharacter {c: 'X', position: 2}; "neg_upper_0X")]
-#[test_case("-0O10", StrToIntError::InvalidCharacter {c: 'O', position: 2}; "neg_upper_0O")]
-#[test_case("-0B10", StrToIntError::InvalidCharacter {c: 'B', position: 2}; "neg_upper_0B")]
-#[test_case("___1___", StrToIntError::InvalidCharacter {c: '_', position: 0})]
-#[test_case("_0x10", StrToIntError::InvalidCharacter {c: '_', position: 0})]
-#[test_case("_0o10", StrToIntError::InvalidCharacter {c: '_', position: 0})]
-#[test_case("_0b10", StrToIntError::InvalidCharacter {c: '_', position: 0})]
-#[test_case("12³45", StrToIntError::InvalidCharacter {c: '³', position: 2}; "super3")]
-fn test_strtoint_i32_err(s: &str, err: StrToIntError) {
+#[test_case("", StrToPrimIntError::NoDigits; "empty")]
+#[test_case("+", StrToPrimIntError::NoDigits; "plus")]
+#[test_case("-", StrToPrimIntError::NoDigits; "minus")]
+#[test_case("_", StrToPrimIntError::InvalidCharacter {c: '_', position: 0})]
+#[test_case("0x", StrToPrimIntError::NoDigits)]
+#[test_case("0o", StrToPrimIntError::NoDigits)]
+#[test_case("0b", StrToPrimIntError::NoDigits)]
+#[test_case("0x+", StrToPrimIntError::InvalidCharacter {c: '+', position: 2}; "hex_plus")]
+#[test_case("0o+", StrToPrimIntError::InvalidCharacter {c: '+', position: 2}; "oct_plus")]
+#[test_case("0b+", StrToPrimIntError::InvalidCharacter {c: '+', position: 2}; "bin_plus")]
+#[test_case("0x+123", StrToPrimIntError::InvalidCharacter {c: '+', position: 2}; "hex_pos_123")]
+#[test_case("0x-", StrToPrimIntError::InvalidCharacter {c: '-', position: 2}; "hex_minus")]
+#[test_case("0o-", StrToPrimIntError::InvalidCharacter {c: '-', position: 2}; "oct_minus")]
+#[test_case("0b-", StrToPrimIntError::InvalidCharacter {c: '-', position: 2}; "bin_minus")]
+#[test_case("0x-123", StrToPrimIntError::InvalidCharacter {c: '-', position: 2}; "hex_neg_123")]
+#[test_case("0x_", StrToPrimIntError::NoDigits; "hex_under")]
+#[test_case("0o_", StrToPrimIntError::NoDigits; "oct_under")]
+#[test_case("0b_", StrToPrimIntError::NoDigits; "bin_under")]
+#[test_case("0xg", StrToPrimIntError::InvalidCharacter {c: 'g', position: 2})]
+#[test_case("0o9", StrToPrimIntError::InvalidCharacter {c: '9', position: 2})]
+#[test_case("0b2", StrToPrimIntError::InvalidCharacter {c: '2', position: 2})]
+#[test_case("feed", StrToPrimIntError::InvalidCharacter {c: 'f', position: 0})]
+#[test_case(" 42 ", StrToPrimIntError::InvalidCharacter {c: ' ', position: 0}; "42space")]
+#[test_case("42.", StrToPrimIntError::InvalidCharacter {c: '.', position: 2}; "42dot")]
+#[test_case("42.0", StrToPrimIntError::InvalidCharacter {c: '.', position: 2})]
+#[test_case("<=>", StrToPrimIntError::InvalidCharacter {c: '<', position: 0}; "cmp")]
+#[test_case("2147483648", StrToPrimIntError::OutOfRange)]
+#[test_case("0x80000000", StrToPrimIntError::OutOfRange)]
+#[test_case("0o20000000000", StrToPrimIntError::OutOfRange)]
+#[test_case("0b10000000000000000000000000000000", StrToPrimIntError::OutOfRange)]
+#[test_case("-2147483649", StrToPrimIntError::OutOfRange)]
+#[test_case("123456789012345678902134567890", StrToPrimIntError::OutOfRange; "very_big")]
+#[test_case("-123456789012345678902134567890", StrToPrimIntError::OutOfRange; "neg_very_big")]
+#[test_case("0X10", StrToPrimIntError::InvalidCharacter {c: 'X', position: 1})]
+#[test_case("0O10", StrToPrimIntError::InvalidCharacter {c: 'O', position: 1})]
+#[test_case("0B10", StrToPrimIntError::InvalidCharacter {c: 'B', position: 1})]
+#[test_case("+0X10", StrToPrimIntError::InvalidCharacter {c: 'X', position: 2}; "pos_upper_0X")]
+#[test_case("+0O10", StrToPrimIntError::InvalidCharacter {c: 'O', position: 2}; "pos_upper_0O")]
+#[test_case("+0B10", StrToPrimIntError::InvalidCharacter {c: 'B', position: 2}; "pos_upper_0B")]
+#[test_case("-0X10", StrToPrimIntError::InvalidCharacter {c: 'X', position: 2}; "neg_upper_0X")]
+#[test_case("-0O10", StrToPrimIntError::InvalidCharacter {c: 'O', position: 2}; "neg_upper_0O")]
+#[test_case("-0B10", StrToPrimIntError::InvalidCharacter {c: 'B', position: 2}; "neg_upper_0B")]
+#[test_case("___1___", StrToPrimIntError::InvalidCharacter {c: '_', position: 0})]
+#[test_case("_0x10", StrToPrimIntError::InvalidCharacter {c: '_', position: 0})]
+#[test_case("_0o10", StrToPrimIntError::InvalidCharacter {c: '_', position: 0})]
+#[test_case("_0b10", StrToPrimIntError::InvalidCharacter {c: '_', position: 0})]
+#[test_case("12³45", StrToPrimIntError::InvalidCharacter {c: '³', position: 2}; "super3")]
+fn test_strtoint_i32_err(s: &str, err: StrToPrimIntError) {
     assert_eq!(strtoint::<i32>(s).unwrap_err(), err);
 }
 
@@ -106,7 +108,7 @@ fn test_strtoint_u32(s: &str, x: u32) {
 #[test_case("-0", StrToIntError::InvalidCharacter {c: '-', position: 0})]
 #[test_case("-", StrToIntError::InvalidCharacter {c: '-', position: 0})]
 #[test_case("4294967296", StrToIntError::OutOfRange)]
-fn test_strtoint_u32_err(s: &str, err: StrToIntError) {
+fn test_strtoint_u32_err(s: &str, err: StrToPrimIntError) {
     assert_eq!(strtoint::<u32>(s).unwrap_err(), err);
 }
 
@@ -124,7 +126,7 @@ fn test_strtoint_nonzero_i32(s: &str, x: i32) {
 #[test_case("0", StrToIntError::OutOfRange)]
 #[test_case("2147483648", StrToIntError::OutOfRange)]
 #[test_case("-2147483649", StrToIntError::OutOfRange)]
-fn test_strtoint_nonzero_i32_err(s: &str, err: StrToIntError) {
+fn test_strtoint_nonzero_i32_err(s: &str, err: StrToPrimIntError) {
     assert_eq!(strtoint::<NonZeroI32>(s).unwrap_err(), err);
 }
 
@@ -142,6 +144,6 @@ fn test_strtoint_nonzero_u32(s: &str, x: u32) {
 #[test_case("0", StrToIntError::OutOfRange)]
 #[test_case("-1", StrToIntError::InvalidCharacter {c: '-', position: 0})]
 #[test_case("4294967296", StrToIntError::OutOfRange)]
-fn test_strtoint_nonzero_u32_err(s: &str, err: StrToIntError) {
+fn test_strtoint_nonzero_u32_err(s: &str, err: StrToPrimIntError) {
     assert_eq!(strtoint::<NonZeroU32>(s).unwrap_err(), err);
 }
