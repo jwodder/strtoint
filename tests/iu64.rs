@@ -1,3 +1,4 @@
+#![cfg(test)]
 use core::num::{NonZeroI64, NonZeroU64};
 use strtoint::{strtoint, StrToIntError};
 use test_case::test_case;

@@ -5,7 +5,7 @@
 //! `0b` for hexadecimal, octal, and binary literals, respectively.
 //!
 //! This crate supports parsing into all primitive integer types built into
-//! Rust, along with their "NonZero" equivalents.
+//! Rust, along with their "`NonZero`" equivalents.
 //!
 //! If the `std` feature (enabled by default) is disabled, this crate will be
 //! built in no-std mode.  The only difference is that [`StrToIntError`] only
@@ -48,8 +48,8 @@ extern crate std;
 /// [1]: https://doc.rust-lang.org/stable/reference/tokens.html#integer-literals
 ///
 /// This function is implemented for all primitive integer types built into
-/// Rust, along with their "NonZero" equivalents, and the `Err` type for all of
-/// them is [`StrToIntError`].
+/// Rust, along with their "`NonZero`" equivalents, and the `Err` type for all
+/// of them is [`StrToIntError`].
 ///
 /// # Errors
 ///
@@ -98,7 +98,7 @@ pub enum StrToIntError {
 }
 
 impl fmt::Display for StrToIntError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             StrToIntError::NoDigits => write!(f, "no digits in input"),
             StrToIntError::InvalidCharacter { c, position } => {

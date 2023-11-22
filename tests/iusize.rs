@@ -1,3 +1,4 @@
+#![cfg(test)]
 use core::num::{NonZeroIsize, NonZeroUsize};
 use strtoint::{strtoint, StrToIntError};
 use test_case::test_case;
