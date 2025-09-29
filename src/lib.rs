@@ -102,7 +102,7 @@ impl fmt::Display for StrToIntError {
         match self {
             StrToIntError::NoDigits => write!(f, "no digits in input"),
             StrToIntError::InvalidCharacter { c, position } => {
-                write!(f, "invalid character {:?} at position {}", c, position)
+                write!(f, "invalid character {c:?} at position {position}")
             }
             StrToIntError::OutOfRange => write!(f, "value is out of range for numeric type"),
         }
