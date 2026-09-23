@@ -208,7 +208,9 @@ macro_rules! impl_nonzero {
     };
 }
 
-impl_prim!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize);
+impl_prim!(
+    i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize
+);
 impl_nonzero!(core::num::NonZeroI8, i8);
 impl_nonzero!(core::num::NonZeroI16, i16);
 impl_nonzero!(core::num::NonZeroI32, i32);

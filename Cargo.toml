@@ -1,7 +1,7 @@
 [package]
 name = "strtoint"
 version = "0.2.0-dev"
-edition = "2021"
+edition = "2024"
 rust-version = "1.85"
 description = "Parse integers from strings, with support for base prefixes"
 authors = ["John Thorvald Wodder II <strtoint@varonathe.org>"]
